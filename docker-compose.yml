@@ -1,0 +1,58 @@
+services:
+  # Optional solo-demo database. Not started by default (`docker compose up`
+  # expects an external MySQL on localhost / a private network — never a public IP).
+  mysql:
+    profiles: ["bundled-mysql"]
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-xiaokan}
+      MYSQL_USER: ${MYSQL_USER:-xiaokan}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-xiaokan}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
+    # Bind only loopback on the host. Other compose services still reach this
+    # container as hostname `mysql` on the internal network.
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - xiaokan_mysql:/var/lib/mysql
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--default-time-zone=+00:00"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uxiaokan", "-pxiaokan"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST:-host.docker.internal}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-xiaokan}
+      MYSQL_USER: ${MYSQL_USER:-xiaokan}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-xiaokan}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/data/uploads}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+    volumes:
+      - xiaokan_uploads:/app/data/uploads
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  xiaokan_mysql:
+  xiaokan_uploads:
