@@ -1,0 +1,35 @@
+# Build
+**/target/
+**/dist/
+**/node_modules/
+**/.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project/
+.classpath
+.settings/
+
+# Env & secrets
+.env
+.env.local
+*.pem
+
+# Uploads / local data
+data/
+backend/data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test
+**/coverage/
+backend/hs_err_pid*
+docker-compose.override.yml
